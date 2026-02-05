@@ -13,23 +13,13 @@ from telegram.ext import (
     filters,
 )
 
-# =============================
-# CONFIG
-# =============================
-# 👉 INSERISCI QUI IL TOKEN DEL TUO BOT TELEGRAM (per uso locale)
-import os
 TOKEN = os.environ.get("TOKEN")
 STACK_SIZE = 64
 
-CATEGORIA, CIBO, STACK, TIPO_LISTA = range(4)
+CATEGORIA, CIBO, STACK = range(3)
 
-
-# =============================
-# UTILS
-# =============================
 
 def format_stack(qta: int) -> str:
-    """Ritorna 'X stack e Y' senza arrotondare per eccesso."""
     stack = qta // STACK_SIZE
     resto = qta % STACK_SIZE
 
@@ -41,93 +31,74 @@ def format_stack(qta: int) -> str:
         return f"{resto}"
 
 
-# =============================
-# DATI MENU
-# quantità riferite alla ricetta base
-# =============================
+def espandi_ingredienti(ingredienti):
+    """Scompone la salsa tartara nei singoli ingredienti."""
+    nuovi = defaultdict(float)
+
+    for nome, qta in ingredienti.items():
+        if nome == "Salsa tartara":
+            nuovi["Cipolla"] += 1 * qta
+            nuovi["Cetriolo"] += (1 / 4) * qta
+            nuovi["Maionese"] += 1 * qta
+        else:
+            nuovi[nome] += qta
+
+    return nuovi
+
 
 MENU = {
     "Hamburger": {
-        "Carne": {
-            "emoji": "🍔🥩",
-            "output": 6,
-            "ingredienti": {"Pane": 2, "Pomodoro": 1/5, "Insalata": 1/5, "Hamburger di carne": 1, "Formaggio": 1},
-        },
-        "Vegani": {
-            "emoji": "🍔🥬",
-            "output": 6,
-            "ingredienti": {"Pane": 2, "Pomodoro": 1/5, "Insalata": 1/5, "Hamburger vegano": 1, "Formaggio": 1},
-        },
-        "Pesce": {
-            "emoji": "🍔🐟",
-            "output": 4,
-            "ingredienti": {"Pane": 2, "Merluzzo": 1, "Salsa tartara": 1},
-        },
-        "Bacon": {
-            "emoji": "🍔🥓",
-            "output": 5,
-            "ingredienti": {"Pane": 2, "Hamburger di carne": 1, "Bacon": 1, "Formaggio": 1},
-        },
-        "Pollo": {
-            "emoji": "🍔🍗",
-            "output": 6,
-            "ingredienti": {"Pane": 2, "Pomodoro": 1/5, "Insalata": 1/5, "Hamburger di pollo": 1, "Formaggio": 1},
+        "emoji": "🍔",
+        "cibi": {
+            "Carne": {"emoji": "🥩", "output": 6, "ingredienti": {"Pane": 2, "Pomodoro": 1/5, "Insalata": 1/5, "Hamburger di carne": 1, "Formaggio": 1}},
+            "Vegani": {"emoji": "🥬", "output": 6, "ingredienti": {"Pane": 2, "Pomodoro": 1/5, "Insalata": 1/5, "Hamburger vegano": 1, "Formaggio": 1}},
+            "Pesce": {"emoji": "🐟", "output": 4, "ingredienti": {"Pane": 2, "Merluzzo": 1, "Salsa tartara": 1}},
+            "Bacon": {"emoji": "🥓", "output": 5, "ingredienti": {"Pane": 2, "Hamburger di carne": 1, "Bacon": 1, "Formaggio": 1}},
+            "Pollo": {"emoji": "🍗", "output": 6, "ingredienti": {"Pane": 2, "Pomodoro": 1/5, "Insalata": 1/5, "Hamburger di pollo": 1, "Formaggio": 1}},
         },
     },
     "Wrap": {
-        "Carne": {
-            "emoji": "🌯🥩",
-            "output": 5,
-            "ingredienti": {"Piadina": 1, "Pomodoro": 1/5, "Insalata": 1/5, "Hamburger di carne": 1, "Formaggio": 1},
-        },
-        "Vegani": {
-            "emoji": "🌯🥬",
-            "output": 5,
-            "ingredienti": {"Piadina": 1, "Pomodoro": 1/5, "Insalata": 1/5, "Hamburger vegano": 1, "Formaggio": 1},
-        },
-        "Pesce": {
-            "emoji": "🌯🐟",
-            "output": 3,
-            "ingredienti": {"Piadina": 1, "Merluzzo": 1, "Salsa tartara": 1},
-        },
-        "Bacon": {
-            "emoji": "🌯🥓",
-            "output": 4,
-            "ingredienti": {"Piadina": 1, "Hamburger di carne": 1, "Bacon": 1, "Formaggio": 1},
-        },
-        "Pollo": {
-            "emoji": "🌯🍗",
-            "output": 5,
-            "ingredienti": {"Piadina": 1, "Pomodoro": 1/5, "Insalata": 1/5, "Hamburger di pollo": 1, "Formaggio": 1},
+        "emoji": "🌯",
+        "cibi": {
+            "Carne": {"emoji": "🥩", "output": 5, "ingredienti": {"Piadina": 1, "Pomodoro": 1/5, "Insalata": 1/5, "Hamburger di carne": 1, "Formaggio": 1}},
+            "Vegani": {"emoji": "🥬", "output": 5, "ingredienti": {"Piadina": 1, "Pomodoro": 1/5, "Insalata": 1/5, "Hamburger vegano": 1, "Formaggio": 1}},
+            "Pesce": {"emoji": "🐟", "output": 3, "ingredienti": {"Piadina": 1, "Merluzzo": 1, "Salsa tartara": 1}},
+            "Bacon": {"emoji": "🥓", "output": 4, "ingredienti": {"Piadina": 1, "Hamburger di carne": 1, "Bacon": 1, "Formaggio": 1}},
+            "Pollo": {"emoji": "🍗", "output": 5, "ingredienti": {"Piadina": 1, "Pomodoro": 1/5, "Insalata": 1/5, "Hamburger di pollo": 1, "Formaggio": 1}},
         },
     },
     "Tacos": {
-        "Carne": {"emoji": "🌮🥩", "output": 4, "ingredienti": {"Piadina": 1, "Peperone rosso": 1, "Peperoncino": 1, "Hamburger di carne": 1, "Lattuga": 1/5}},
-        "Pesce": {"emoji": "🌮🐟", "output": 4, "ingredienti": {"Piadina": 1, "Merluzzo": 1, "Peperoncino": 1, "Salsa tartara": 1}},
-        "Piccanti": {"emoji": "🌮🔥", "output": 4, "ingredienti": {"Piadina": 1, "Hamburger di carne": 1, "Lattuga": 1/5, "Peperoncino": 1}},
-        "Vegani": {"emoji": "🌮🥬", "output": 4, "ingredienti": {"Piadina": 1, "Pomodoro": 1/5, "Lattuga": 1/5, "Jalapeno": 1}},
+        "emoji": "🌮",
+        "cibi": {
+            "Carne": {"emoji": "🥩", "output": 4, "ingredienti": {"Piadina": 1, "Peperone rosso": 1, "Peperoncino": 1, "Hamburger di carne": 1, "Lattuga": 1/5}},
+            "Pesce": {"emoji": "🐟", "output": 4, "ingredienti": {"Piadina": 1, "Merluzzo": 1, "Peperoncino": 1, "Salsa tartara": 1}},
+            "Piccanti": {"emoji": "🔥", "output": 4, "ingredienti": {"Piadina": 1, "Hamburger di carne": 1, "Lattuga": 1/5, "Peperoncino": 1}},
+            "Vegani": {"emoji": "🥬", "output": 4, "ingredienti": {"Piadina": 1, "Pomodoro": 1/5, "Lattuga": 1/5, "Jalapeno": 1}},
+        },
     },
     "HotDog": {
-        "Normali": {"emoji": "🌭", "output": 4, "ingredienti": {"Pane": 1, "Wurstel": 1, "Ketchup": 1, "Maionese": 1}},
-        "Cipolla croccante": {"emoji": "🌭🧅", "output": 4, "ingredienti": {"Pane": 1, "Wurstel": 1, "Cipolla": 1, "Senape": 1}},
-        "Vegani": {"emoji": "🌭🥬", "output": 4, "ingredienti": {"Pane": 1, "Wurstel vegano": 1, "Pomodoro": 1/5, "Lattuga": 1/5}},
+        "emoji": "🌭",
+        "cibi": {
+            "Normali": {"emoji": "🌭", "output": 4, "ingredienti": {"Pane": 1, "Wurstel": 1, "Ketchup": 1, "Maionese": 1}},
+            "Cipolla croccante": {"emoji": "🧅", "output": 4, "ingredienti": {"Pane": 1, "Wurstel": 1, "Cipolla": 1, "Senape": 1}},
+            "Vegani": {"emoji": "🥬", "output": 4, "ingredienti": {"Pane": 1, "Wurstel vegano": 1, "Pomodoro": 1/5, "Lattuga": 1/5}},
+        },
     },
     "Extra": {
-        "Patatine": {"emoji": "🍟", "output": 4, "ingredienti": {"Patate": 4}},
-        "Nuggets": {"emoji": "🍗", "output": 12, "ingredienti": {"Pollo": 6, "Pastella": 6}},
-        "TastyBasket": {"emoji": "🧺", "output": 6, "ingredienti": {"Nuggets": 3, "Sale": 1, "Maionese": 1, "Ketchup": 1}},
+        "emoji": "🍟",
+        "cibi": {
+            "Patatine": {"emoji": "🍟", "output": 4, "ingredienti": {"Patate": 4}},
+            "Nuggets": {"emoji": "🍗", "output": 12, "ingredienti": {"Pollo": 6, "Pastella": 6}},
+            "TastyBasket": {"emoji": "🧺", "output": 6, "ingredienti": {"Nuggets": 3, "Sale": 1, "Maionese": 1, "Ketchup": 1}},
+        },
     },
 }
 
 
-# =============================
-# START
-# =============================
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
-        [InlineKeyboardButton(f"🍔 {cat}", callback_data=f"cat|{cat}")]
-        for cat in MENU.keys()
+        [InlineKeyboardButton(f"{dati['emoji']} {cat}", callback_data=f"cat|{cat}")]
+        for cat, dati in MENU.items()
     ]
 
     await update.message.reply_text(
@@ -138,10 +109,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return CATEGORIA
 
 
-# =============================
-# SCELTA CATEGORIA
-# =============================
-
 async def scelta_categoria(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -150,15 +117,13 @@ async def scelta_categoria(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["categoria"] = categoria
 
     keyboard = []
-    for nome, dati in MENU[categoria].items():
+    for nome, dati in MENU[categoria]["cibi"].items():
         keyboard.append([
             InlineKeyboardButton(
                 f"{dati['emoji']} {nome}",
                 callback_data=f"cibo|{nome}",
             )
         ])
-
-    keyboard.append([InlineKeyboardButton("🔙 Indietro", callback_data="back")])
 
     await query.edit_message_text(
         f"Categoria: *{categoria}*\nScegli il cibo:",
@@ -168,20 +133,6 @@ async def scelta_categoria(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     return CIBO
 
-
-# =============================
-# TORNA INDIETRO
-# =============================
-
-async def indietro(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    return await start(query, context)
-
-
-# =============================
-# SCELTA CIBO
-# =============================
 
 async def scelta_cibo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -193,10 +144,6 @@ async def scelta_cibo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return STACK
 
 
-# =============================
-# INSERIMENTO STACK
-# =============================
-
 async def inserisci_stack(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         stack = int(update.message.text)
@@ -206,48 +153,29 @@ async def inserisci_stack(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.user_data["stack"] = stack
 
-    keyboard = [
-        [InlineKeyboardButton("📦 Lista unica ingredienti", callback_data="lista|unica")],
-        [InlineKeyboardButton("📄 Lista separata", callback_data="lista|separata")],
-    ]
+    return await calcola(update, context)
 
-    await update.message.reply_text(
-        "Come vuoi visualizzare gli ingredienti?",
-        reply_markup=InlineKeyboardMarkup(keyboard),
-    )
-
-    return TIPO_LISTA
-
-
-# =============================
-# CALCOLO INGREDIENTI
-# =============================
 
 async def calcola(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-
-    tipo_lista = query.data.split("|")[1]
-
     categoria = context.user_data["categoria"]
     cibo = context.user_data["cibo"]
     stack = context.user_data["stack"]
 
-    dati = MENU[categoria][cibo]
+    dati = MENU[categoria]["cibi"][cibo]
 
     totale_output = stack * STACK_SIZE
     moltiplicatore = totale_output / dati["output"]
 
-    # inizializza lista cumulativa
     if "lista_totale" not in context.user_data:
         context.user_data["lista_totale"] = defaultdict(float)
 
     ingredienti_totali = context.user_data["lista_totale"]
 
-    for nome, qta in dati["ingredienti"].items():
+    ingredienti_base = espandi_ingredienti(dati["ingredienti"])
+
+    for nome, qta in ingredienti_base.items():
         ingredienti_totali[nome] += qta * moltiplicatore
 
-    # salva che siamo almeno al secondo cibo
     count = context.user_data.get("count_cibi", 0) + 1
     context.user_data["count_cibi"] = count
 
@@ -255,7 +183,6 @@ async def calcola(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for nome, qta in ingredienti_totali.items():
         testo += f"- {nome}: {format_stack(math.ceil(qta))}\n"
 
-    # tastiera dopo il primo cibo
     if count >= 2:
         keyboard = [
             [InlineKeyboardButton("➕ Aggiungi altro cibo", callback_data="continua")],
@@ -266,23 +193,29 @@ async def calcola(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("➕ Aggiungi altro cibo", callback_data="continua")],
         ]
 
-    await query.edit_message_text(
-        testo,
-        parse_mode="Markdown",
-        reply_markup=InlineKeyboardMarkup(keyboard),
-    )
+    if update.callback_query:
+        await update.callback_query.edit_message_text(
+            testo,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+        )
+    else:
+        await update.message.reply_text(
+            testo,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+        )
 
     return CATEGORIA
 
 
 async def continua_scelta(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Ritorna al menu categorie mantenendo la lista cumulativa."""
     query = update.callback_query
     await query.answer()
 
     keyboard = [
-        [InlineKeyboardButton(f"🍔 {cat}", callback_data=f"cat|{cat}")]
-        for cat in MENU.keys()
+        [InlineKeyboardButton(f"{dati['emoji']} {cat}", callback_data=f"cat|{cat}")]
+        for cat, dati in MENU.items()
     ]
 
     await query.edit_message_text(
@@ -294,7 +227,6 @@ async def continua_scelta(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def conferma_lista(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Mostra la lista finale e termina."""
     query = update.callback_query
     await query.answer()
 
@@ -306,15 +238,9 @@ async def conferma_lista(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.edit_message_text(testo, parse_mode="Markdown")
 
-    # reset dati utente
     context.user_data.clear()
 
     return ConversationHandler.END
-
-
-# =============================
-# MAIN
-# =============================
 
 
 def main():
@@ -328,16 +254,8 @@ def main():
                 CallbackQueryHandler(continua_scelta, pattern="^continua$"),
                 CallbackQueryHandler(conferma_lista, pattern="^conferma$"),
             ],
-            CIBO: [
-                CallbackQueryHandler(scelta_cibo, pattern="^cibo\\|"),
-                CallbackQueryHandler(indietro, pattern="^back$"),
-            ],
-            STACK: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, inserisci_stack)
-            ],
-            TIPO_LISTA: [
-                CallbackQueryHandler(calcola, pattern="^lista\\|")
-            ],
+            CIBO: [CallbackQueryHandler(scelta_cibo, pattern="^cibo\\|")],
+            STACK: [MessageHandler(filters.TEXT & ~filters.COMMAND, inserisci_stack)],
         },
         fallbacks=[CommandHandler("start", start)],
     )
@@ -358,7 +276,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
