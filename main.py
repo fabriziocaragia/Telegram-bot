@@ -259,9 +259,18 @@ def main():
 
     app.add_handler(conv)
 
-    print("Bot avviato...")
-    app.run_polling()
+  PORT = int(os.environ.get("PORT", 10000))
+WEBHOOK_URL = os.environ.get("RENDER_EXTERNAL_URL")
+
+print("Bot avviato su Render...")
+
+app.run_webhook(
+    listen="0.0.0.0",
+    port=PORT,
+    webhook_url=WEBHOOK_URL,
+)
 
 
 if __name__ == "__main__":
     main()
+
