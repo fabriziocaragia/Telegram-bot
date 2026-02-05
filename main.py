@@ -1,4 +1,4 @@
-# Codice aggiornato con sistema incarico finale
+# Codice aggiornato con incarico finale + supporto Render/locale
 import os
 import math
 from collections import defaultdict
@@ -210,7 +210,7 @@ async def nome_direttore(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "MrSh0t_": "Capocuoco",
     }
 
-    ruolo = ruoli.get(nome_dir, None)
+    ruolo = ruoli.get(nome_dir)
 
     giorni = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"]
     now = datetime.now()
@@ -259,18 +259,22 @@ def main():
 
     app.add_handler(conv)
 
-  PORT = int(os.environ.get("PORT", 10000))
-WEBHOOK_URL = os.environ.get("RENDER_EXTERNAL_URL")
+    # Avvio automatico locale o Render
+    if os.environ.get("RENDER_EXTERNAL_URL"):
+        PORT = int(os.environ.get("PORT", 10000))
+        WEBHOOK_URL = os.environ.get("RENDER_EXTERNAL_URL")
 
-print("Bot avviato su Render...")
+        print("Bot avviato su Render (webhook)...")
 
-app.run_webhook(
-    listen="0.0.0.0",
-    port=PORT,
-    webhook_url=WEBHOOK_URL,
-)
+        app.run_webhook(
+            listen="0.0.0.0",
+            port=PORT,
+            webhook_url=WEBHOOK_URL,
+        )
+    else:
+        print("Bot avviato in locale (polling)...")
+        app.run_polling()
 
 
 if __name__ == "__main__":
     main()
-
