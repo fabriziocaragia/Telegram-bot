@@ -335,23 +335,21 @@ def main():
     )
 
     app.add_handler(conv)
-
     app.add_handler(CallbackQueryHandler(continua_scelta, pattern="^continua$"))
     app.add_handler(CallbackQueryHandler(conferma_lista, pattern="^conferma$"))
 
-print("Bot avviato in modalità WEBHOOK...")
+    PORT = int(os.environ.get("PORT", 10000))
+    WEBHOOK_URL = os.environ.get("RENDER_EXTERNAL_URL")
 
-WEBHOOK_URL = "https://TUO_SITO.justrunmy.app"
+    print("Bot avviato in modalità WEBHOOK...")
 
-print("Bot avviato in modalità WEBHOOK...")
-app.run_webhook(
-    listen="0.0.0.0",
-    port=int(os.environ.get("PORT", 8080)),
-    url_path=TOKEN,
-    webhook_url=f"https://telegram-bot-o3zj.onrender.com/{TOKEN}"
-)
-
+    app.run_webhook(
+        listen="0.0.0.0",
+        port=PORT,
+        webhook_url=WEBHOOK_URL,
+    )
 
 
 if __name__ == "__main__":
     main()
+
