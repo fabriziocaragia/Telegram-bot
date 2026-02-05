@@ -319,6 +319,8 @@ async def conferma_lista(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     app = ApplicationBuilder().token(TOKEN).build()
+    
+    app.add_handler(CommandHandler("start", start))
 
     conv = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
@@ -352,5 +354,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
