@@ -18,7 +18,7 @@ from telegram.ext import (
 # =============================
 # 👉 INSERISCI QUI IL TOKEN DEL TUO BOT TELEGRAM (per uso locale)
 import os
-TOKEN = os.environ.get("8563744998:AAEMDkCS1QLU_IfzPnpNlVJfeyWTe0U8MOc")
+TOKEN = os.environ.get("TOKEN")
 STACK_SIZE = 64
 
 CATEGORIA, CIBO, STACK, TIPO_LISTA = range(4)
@@ -352,4 +352,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
