@@ -319,26 +319,30 @@ async def conferma_lista(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     app = ApplicationBuilder().token(TOKEN).build()
-    
-    app.add_handler(CommandHandler("start", start))
 
     conv = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
-            CATEGORIA: [CallbackQueryHandler(scelta_categoria, pattern="^cat\\|")],
+            CATEGORIA: [
+                CallbackQueryHandler(scelta_categoria, pattern="^cat\\|"),
+                CallbackQueryHandler(continua_scelta, pattern="^continua$"),
+                CallbackQueryHandler(conferma_lista, pattern="^conferma$"),
+            ],
             CIBO: [
                 CallbackQueryHandler(scelta_cibo, pattern="^cibo\\|"),
                 CallbackQueryHandler(indietro, pattern="^back$"),
             ],
-            STACK: [MessageHandler(filters.TEXT & ~filters.COMMAND, inserisci_stack)],
-            TIPO_LISTA: [CallbackQueryHandler(calcola, pattern="^lista\\|")],
+            STACK: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, inserisci_stack)
+            ],
+            TIPO_LISTA: [
+                CallbackQueryHandler(calcola, pattern="^lista\\|")
+            ],
         },
-        fallbacks=[],
+        fallbacks=[CommandHandler("start", start)],
     )
 
     app.add_handler(conv)
-    app.add_handler(CallbackQueryHandler(continua_scelta, pattern="^continua$"))
-    app.add_handler(CallbackQueryHandler(conferma_lista, pattern="^conferma$"))
 
     PORT = int(os.environ.get("PORT", 10000))
     WEBHOOK_URL = os.environ.get("RENDER_EXTERNAL_URL")
@@ -354,6 +358,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
