@@ -1,4 +1,4 @@
-# Codice aggiornato con incarico finale + supporto Render/locale
+# Codice aggiornato con incarico finale corretto + reset lista
 import os
 import math
 from collections import defaultdict
@@ -97,6 +97,8 @@ MENU = {
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.clear()
+
     keyboard = [
         [InlineKeyboardButton(f"{dati['emoji']} {cat}", callback_data=f"cat|{cat}")]
         for cat, dati in MENU.items()
@@ -120,10 +122,7 @@ async def scelta_categoria(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = []
     for nome, dati in MENU[categoria]["cibi"].items():
         keyboard.append([
-            InlineKeyboardButton(
-                f"{dati['emoji']} {nome}",
-                callback_data=f"cibo|{nome}",
-            )
+            InlineKeyboardButton(f"{dati['emoji']} {nome}", callback_data=f"cibo|{nome}")
         ])
 
     await query.edit_message_text(
@@ -164,45 +163,36 @@ async def calcola(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     dati = MENU[categoria]["cibi"][cibo]
 
-    totale_output = stack * STACK_SIZE
-    moltiplicatore = totale_output / dati["output"]
-
     if "lista_totale" not in context.user_data:
         context.user_data["lista_totale"] = defaultdict(float)
         context.user_data["cibi_scelti"] = []
 
-    ingredienti_totali = context.user_data["lista_totale"]
-
-    ingredienti_base = espandi_ingredienti(dati["ingredienti"])
-
-    for nome, qta in ingredienti_base.items():
-        ingredienti_totali[nome] += qta * moltiplicatore
-
-    context.user_data["cibi_scelti"].append((cibo, stack))
+    context.user_data["cibi_scelti"].append((categoria, cibo, stack))
 
     keyboard = [
         [InlineKeyboardButton("➕ Aggiungi altro cibo", callback_data="continua")],
+        [InlineKeyboardButton("🗑 Reset lista", callback_data="reset")],
         [InlineKeyboardButton("✅ Conferma lista", callback_data="conferma")],
     ]
 
-    testo = "🧾 *Lista ingredienti attuale:*\n\n"
-    for nome, qta in ingredienti_totali.items():
-        testo += f"- {nome}: {format_stack(math.ceil(qta))}\n"
+    testo = "Cibo aggiunto alla lista."
 
     if update.callback_query:
-        await update.callback_query.edit_message_text(
-            testo,
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(keyboard),
-        )
+        await update.callback_query.edit_message_text(testo, reply_markup=InlineKeyboardMarkup(keyboard))
     else:
-        await update.message.reply_text(
-            testo,
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(keyboard),
-        )
+        await update.message.reply_text(testo, reply_markup=InlineKeyboardMarkup(keyboard))
 
     return CATEGORIA
+
+
+async def reset_lista(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    context.user_data.clear()
+
+    await query.edit_message_text("Lista resettata. Usa /start per ricominciare.")
+    return ConversationHandler.END
 
 
 async def continua_scelta(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -214,10 +204,7 @@ async def continua_scelta(update: Update, context: ContextTypes.DEFAULT_TYPE):
         for cat, dati in MENU.items()
     ]
 
-    await query.edit_message_text(
-        "Scegli un altro cibo da aggiungere:",
-        reply_markup=InlineKeyboardMarkup(keyboard),
-    )
+    await query.edit_message_text("Scegli un altro cibo da aggiungere:", reply_markup=InlineKeyboardMarkup(keyboard))
 
     return CATEGORIA
 
@@ -238,8 +225,6 @@ async def nome_dipendente(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def nome_direttore(update: Update, context: ContextTypes.DEFAULT_TYPE):
     nome_dir = update.message.text
-    nome_dip = context.user_data["nome_dip"]
-    cibi = context.user_data.get("cibi_scelti", [])
 
     ruoli = {
         "BlackShade15": "Direttrice",
@@ -248,6 +233,14 @@ async def nome_direttore(update: Update, context: ContextTypes.DEFAULT_TYPE):
     }
 
     ruolo = ruoli.get(nome_dir)
+
+    if not ruolo:
+        await update.message.reply_text("Non hai i permessi necessari!")
+        context.user_data.clear()
+        return ConversationHandler.END
+
+    nome_dip = context.user_data["nome_dip"]
+    cibi = context.user_data.get("cibi_scelti", [])
 
     giorni = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"]
     now = datetime.now()
@@ -258,16 +251,12 @@ async def nome_direttore(update: Update, context: ContextTypes.DEFAULT_TYPE):
     testo += "--------------------------------\n"
     testo += "- Preparare:\n"
 
-    for cibo, stack in cibi:
-        testo += f"  - {stack} stack di {cibo}\n"
+    for categoria, cibo, stack in cibi:
+        testo += f"  - {stack} stack di {categoria} {cibo}\n"
 
     testo += "\nAl completamento dell'incarico assegnato è richiesta la controfirma di questo libro.\n"
     testo += f"- Dipendente incaricato: {nome_dip}\n"
-
-    if ruolo:
-        testo += f"- Firma {ruolo}: {nome_dir}"
-    else:
-        testo += "- Non hai i permessi necessari!"
+    testo += f"- Firma {ruolo}: {nome_dir}"
 
     await update.message.reply_text(testo, parse_mode="Markdown")
 
@@ -285,6 +274,7 @@ def main():
                 CallbackQueryHandler(scelta_categoria, pattern="^cat\\|"),
                 CallbackQueryHandler(continua_scelta, pattern="^continua$"),
                 CallbackQueryHandler(conferma_lista, pattern="^conferma$"),
+                CallbackQueryHandler(reset_lista, pattern="^reset$"),
             ],
             CIBO: [CallbackQueryHandler(scelta_cibo, pattern="^cibo\\|")],
             STACK: [MessageHandler(filters.TEXT & ~filters.COMMAND, inserisci_stack)],
@@ -296,20 +286,12 @@ def main():
 
     app.add_handler(conv)
 
-    # Avvio automatico locale o Render
     if os.environ.get("RENDER_EXTERNAL_URL"):
         PORT = int(os.environ.get("PORT", 10000))
         WEBHOOK_URL = os.environ.get("RENDER_EXTERNAL_URL")
 
-        print("Bot avviato su Render (webhook)...")
-
-        app.run_webhook(
-            listen="0.0.0.0",
-            port=PORT,
-            webhook_url=WEBHOOK_URL,
-        )
+        app.run_webhook(listen="0.0.0.0", port=PORT, webhook_url=WEBHOOK_URL)
     else:
-        print("Bot avviato in locale (polling)...")
         app.run_polling()
 
 
