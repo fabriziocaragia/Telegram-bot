@@ -1,6 +1,8 @@
+# Codice aggiornato con sistema incarico finale
 import os
 import math
 from collections import defaultdict
+from datetime import datetime
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -16,7 +18,7 @@ from telegram.ext import (
 TOKEN = os.environ.get("TOKEN")
 STACK_SIZE = 64
 
-CATEGORIA, CIBO, STACK = range(3)
+CATEGORIA, CIBO, STACK, NOME_DIP, NOME_DIR = range(5)
 
 
 def format_stack(qta: int) -> str:
@@ -32,7 +34,6 @@ def format_stack(qta: int) -> str:
 
 
 def espandi_ingredienti(ingredienti):
-    """Scompone la salsa tartara nei singoli ingredienti."""
     nuovi = defaultdict(float)
 
     for nome, qta in ingredienti.items():
@@ -53,43 +54,6 @@ MENU = {
             "Carne": {"emoji": "🥩", "output": 6, "ingredienti": {"Pane": 2, "Pomodoro": 1/5, "Insalata": 1/5, "Hamburger di carne": 1, "Formaggio": 1}},
             "Vegani": {"emoji": "🥬", "output": 6, "ingredienti": {"Pane": 2, "Pomodoro": 1/5, "Insalata": 1/5, "Hamburger vegano": 1, "Formaggio": 1}},
             "Pesce": {"emoji": "🐟", "output": 4, "ingredienti": {"Pane": 2, "Merluzzo": 1, "Salsa tartara": 1}},
-            "Bacon": {"emoji": "🥓", "output": 5, "ingredienti": {"Pane": 2, "Hamburger di carne": 1, "Bacon": 1, "Formaggio": 1}},
-            "Pollo": {"emoji": "🍗", "output": 6, "ingredienti": {"Pane": 2, "Pomodoro": 1/5, "Insalata": 1/5, "Hamburger di pollo": 1, "Formaggio": 1}},
-        },
-    },
-    "Wrap": {
-        "emoji": "🌯",
-        "cibi": {
-            "Carne": {"emoji": "🥩", "output": 5, "ingredienti": {"Piadina": 1, "Pomodoro": 1/5, "Insalata": 1/5, "Hamburger di carne": 1, "Formaggio": 1}},
-            "Vegani": {"emoji": "🥬", "output": 5, "ingredienti": {"Piadina": 1, "Pomodoro": 1/5, "Insalata": 1/5, "Hamburger vegano": 1, "Formaggio": 1}},
-            "Pesce": {"emoji": "🐟", "output": 3, "ingredienti": {"Piadina": 1, "Merluzzo": 1, "Salsa tartara": 1}},
-            "Bacon": {"emoji": "🥓", "output": 4, "ingredienti": {"Piadina": 1, "Hamburger di carne": 1, "Bacon": 1, "Formaggio": 1}},
-            "Pollo": {"emoji": "🍗", "output": 5, "ingredienti": {"Piadina": 1, "Pomodoro": 1/5, "Insalata": 1/5, "Hamburger di pollo": 1, "Formaggio": 1}},
-        },
-    },
-    "Tacos": {
-        "emoji": "🌮",
-        "cibi": {
-            "Carne": {"emoji": "🥩", "output": 4, "ingredienti": {"Piadina": 1, "Peperone rosso": 1, "Peperoncino": 1, "Hamburger di carne": 1, "Lattuga": 1/5}},
-            "Pesce": {"emoji": "🐟", "output": 4, "ingredienti": {"Piadina": 1, "Merluzzo": 1, "Peperoncino": 1, "Salsa tartara": 1}},
-            "Piccanti": {"emoji": "🔥", "output": 4, "ingredienti": {"Piadina": 1, "Hamburger di carne": 1, "Lattuga": 1/5, "Peperoncino": 1}},
-            "Vegani": {"emoji": "🥬", "output": 4, "ingredienti": {"Piadina": 1, "Pomodoro": 1/5, "Lattuga": 1/5, "Jalapeno": 1}},
-        },
-    },
-    "HotDog": {
-        "emoji": "🌭",
-        "cibi": {
-            "Normali": {"emoji": "🌭", "output": 4, "ingredienti": {"Pane": 1, "Wurstel": 1, "Ketchup": 1, "Maionese": 1}},
-            "Cipolla croccante": {"emoji": "🧅", "output": 4, "ingredienti": {"Pane": 1, "Wurstel": 1, "Cipolla": 1, "Senape": 1}},
-            "Vegani": {"emoji": "🥬", "output": 4, "ingredienti": {"Pane": 1, "Wurstel vegano": 1, "Pomodoro": 1/5, "Lattuga": 1/5}},
-        },
-    },
-    "Extra": {
-        "emoji": "🍟",
-        "cibi": {
-            "Patatine": {"emoji": "🍟", "output": 4, "ingredienti": {"Patate": 4}},
-            "Nuggets": {"emoji": "🍗", "output": 12, "ingredienti": {"Pollo": 6, "Pastella": 6}},
-            "TastyBasket": {"emoji": "🧺", "output": 6, "ingredienti": {"Nuggets": 3, "Sale": 1, "Maionese": 1, "Ketchup": 1}},
         },
     },
 }
@@ -168,6 +132,7 @@ async def calcola(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if "lista_totale" not in context.user_data:
         context.user_data["lista_totale"] = defaultdict(float)
+        context.user_data["cibi_scelti"] = []
 
     ingredienti_totali = context.user_data["lista_totale"]
 
@@ -176,22 +141,16 @@ async def calcola(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for nome, qta in ingredienti_base.items():
         ingredienti_totali[nome] += qta * moltiplicatore
 
-    count = context.user_data.get("count_cibi", 0) + 1
-    context.user_data["count_cibi"] = count
+    context.user_data["cibi_scelti"].append((cibo, stack))
+
+    keyboard = [
+        [InlineKeyboardButton("➕ Aggiungi altro cibo", callback_data="continua")],
+        [InlineKeyboardButton("✅ Conferma lista", callback_data="conferma")],
+    ]
 
     testo = "🧾 *Lista ingredienti attuale:*\n\n"
     for nome, qta in ingredienti_totali.items():
         testo += f"- {nome}: {format_stack(math.ceil(qta))}\n"
-
-    if count >= 2:
-        keyboard = [
-            [InlineKeyboardButton("➕ Aggiungi altro cibo", callback_data="continua")],
-            [InlineKeyboardButton("✅ Conferma lista", callback_data="conferma")],
-        ]
-    else:
-        keyboard = [
-            [InlineKeyboardButton("➕ Aggiungi altro cibo", callback_data="continua")],
-        ]
 
     if update.callback_query:
         await update.callback_query.edit_message_text(
@@ -230,16 +189,52 @@ async def conferma_lista(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    ingredienti_totali = context.user_data.get("lista_totale", {})
+    await query.edit_message_text("Nome dipendente incaricato?")
+    return NOME_DIP
 
-    testo = "✅ *Lista finale ingredienti:*\n\n"
-    for nome, qta in ingredienti_totali.items():
-        testo += f"- {nome}: {format_stack(math.ceil(qta))}\n"
 
-    await query.edit_message_text(testo, parse_mode="Markdown")
+async def nome_dipendente(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["nome_dip"] = update.message.text
+    await update.message.reply_text("Nome di chi assegna l'incarico?")
+    return NOME_DIR
+
+
+async def nome_direttore(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    nome_dir = update.message.text
+    nome_dip = context.user_data["nome_dip"]
+    cibi = context.user_data.get("cibi_scelti", [])
+
+    ruoli = {
+        "BlackShade15": "Direttrice",
+        "Andrygamer06": "Vice Dir.",
+        "MrSh0t_": "Capocuoco",
+    }
+
+    ruolo = ruoli.get(nome_dir, None)
+
+    giorni = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"]
+    now = datetime.now()
+    data_str = f"{giorni[now.weekday()]} {now.strftime('%d/%m/%Y')}"
+
+    testo = "📖 *Incarico*\n"
+    testo += f"{data_str}\n"
+    testo += "--------------------------------\n"
+    testo += "- Preparare:\n"
+
+    for cibo, stack in cibi:
+        testo += f"  - {stack} stack di {cibo}\n"
+
+    testo += "\nAl completamento dell'incarico assegnato è richiesta la controfirma di questo libro.\n"
+    testo += f"- Dipendente incaricato: {nome_dip}\n"
+
+    if ruolo:
+        testo += f"- Firma {ruolo}: {nome_dir}"
+    else:
+        testo += "- Non hai i permessi necessari!"
+
+    await update.message.reply_text(testo, parse_mode="Markdown")
 
     context.user_data.clear()
-
     return ConversationHandler.END
 
 
@@ -256,22 +251,16 @@ def main():
             ],
             CIBO: [CallbackQueryHandler(scelta_cibo, pattern="^cibo\\|")],
             STACK: [MessageHandler(filters.TEXT & ~filters.COMMAND, inserisci_stack)],
+            NOME_DIP: [MessageHandler(filters.TEXT & ~filters.COMMAND, nome_dipendente)],
+            NOME_DIR: [MessageHandler(filters.TEXT & ~filters.COMMAND, nome_direttore)],
         },
         fallbacks=[CommandHandler("start", start)],
     )
 
     app.add_handler(conv)
 
-    PORT = int(os.environ.get("PORT", 10000))
-    WEBHOOK_URL = os.environ.get("RENDER_EXTERNAL_URL")
-
-    print("Bot avviato in modalità WEBHOOK...")
-
-    app.run_webhook(
-        listen="0.0.0.0",
-        port=PORT,
-        webhook_url=WEBHOOK_URL,
-    )
+    print("Bot avviato...")
+    app.run_polling()
 
 
 if __name__ == "__main__":
