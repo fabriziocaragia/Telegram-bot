@@ -178,7 +178,7 @@ async def conferma_lista(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         for nome, qta in dati["ingredienti"].items():
             if nome == "Salsa tartara":
-                ingredienti_totali["Cetrioli"] += 1 * moltiplicatore
+                ingredienti_totali["Cetriolo"] += (1/4) * moltiplicatore
                 ingredienti_totali["Cipolla"] += 1 * moltiplicatore
                 ingredienti_totali["Maionese"] += 1 * moltiplicatore
             else:
@@ -278,3 +278,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
