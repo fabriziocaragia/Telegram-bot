@@ -19,6 +19,8 @@ from telegram.ext import (
 # =============================
 TOKEN = os.environ.get("TOKEN")
 STACK_SIZE = 64
+PORT = int(os.environ.get("PORT", 10000))
+WEBHOOK_URL = os.environ.get("RENDER_EXTERNAL_URL")
 
 CATEGORIA, CIBO, STACK, NOME_DIP, NOME_CAPO = range(5)
 
@@ -78,7 +80,7 @@ MENU = {
 
 
 # =============================
-# START
+# HANDLERS
 # =============================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -239,7 +241,7 @@ async def genera_incarico(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # =============================
-# MAIN
+# MAIN WEBHOOK
 # =============================
 
 def main():
@@ -273,8 +275,13 @@ def main():
 
     app.add_handler(conv)
 
-    print("Bot avviato in polling...")
-    app.run_polling()
+    print("Bot avviato in modalità WEBHOOK...")
+
+    app.run_webhook(
+        listen="0.0.0.0",
+        port=PORT,
+        webhook_url=WEBHOOK_URL,
+    )
 
 
 if __name__ == "__main__":
