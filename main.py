@@ -205,7 +205,7 @@ async def nome_capo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ruoli = {
         "blackshade15": "Direttrice",
         "andrygamer06": "Vice Dir.",
-        "mrsh0t_": "Capocuoco",
+        "fabenji": "Capo Cuoco",
     }
 
     ruolo = ruoli.get(capo.lower())
@@ -278,4 +278,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
